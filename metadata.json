@@ -1,0 +1,5 @@
+{
+  "name": "MediMitra",
+  "description": "A senior-friendly medicine and lifestyle reminder app with AI-powered schedule parsing, emotional nudges, and multimodal generation features.",
+  "requestFramePermissions": []
+}
