@@ -1,6 +1,6 @@
 import { RelationFolder } from '../../../../types';
-// @ts-ignore
-import priyaImg from './images/priya.jpg';
+
+const priyaImg = 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=400&auto=format&fit=crop&q=60';
 
 const NOW = Date.now();
 const ONE_DAY = 86400000;

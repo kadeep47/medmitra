@@ -12,6 +12,8 @@ import { PRIYA_DATA } from '../data/ram_prasad/relations/priya/data';
 import { DR_SHARMA_DATA } from '../data/ram_prasad/relations/dr_sharma/data';
 
 const STORAGE_KEY_PREFIX = 'mm_user_';
+// Increment this version to force a reset of local storage on client devices
+const DATA_VERSION = 3; 
 
 export class Repository {
   private userId: string;
@@ -45,28 +47,40 @@ export class Repository {
   public load(): UserData {
     // 1. Try Local Storage
     const stored = localStorage.getItem(`${STORAGE_KEY_PREFIX}${this.userId}`);
+    
     if (stored) {
-      this.data = JSON.parse(stored);
-      return this.data!;
+      try {
+        const parsed = JSON.parse(stored);
+        // Check version. If mismatch, fall through to re-initialize data
+        if (parsed.meta && parsed.meta.version === DATA_VERSION) {
+           this.data = parsed;
+           return this.data!;
+        }
+        console.log("Data version mismatch, reloading from source...");
+      } catch (e) {
+        console.error("Corrupt local data", e);
+      }
     }
 
-    // 2. If new user "ram_prasad", load from Static Data Folders + CSV
+    // 2. If new user "ram_prasad" or version mismatch, load from Static Data Folders + CSV
     if (this.userId === 'ram_prasad') {
       
       const parsedHistory = this.parseHistoryCSV(HISTORY_CSV);
+      const today = new Date().toISOString().split('T')[0];
       
       // Merge CSV history into Medications
-      const medsWithHistory = MEDICATIONS.map(m => ({
-        ...m,
-        history: parsedHistory[m.id] || [],
-        // Set last action based on today's entry in CSV if exists
-        lastActionDate: parsedHistory[m.id]?.[parsedHistory[m.id].length - 1]?.date === new Date().toISOString().split('T')[0] 
-          ? parsedHistory[m.id][parsedHistory[m.id].length - 1].date 
-          : undefined,
-        lastActionStatus: parsedHistory[m.id]?.[parsedHistory[m.id].length - 1]?.date === new Date().toISOString().split('T')[0]
-          ? parsedHistory[m.id][parsedHistory[m.id].length - 1].status
-          : undefined
-      }));
+      const medsWithHistory = MEDICATIONS.map(m => {
+        const history = parsedHistory[m.id] || [];
+        const lastEntry = history.length > 0 ? history[history.length - 1] : null;
+        
+        return {
+          ...m,
+          history: history,
+          // Set last action based on today's entry in CSV if exists
+          lastActionDate: lastEntry?.date === today ? lastEntry.date : undefined,
+          lastActionStatus: lastEntry?.date === today ? lastEntry.status : undefined
+        };
+      });
 
       const initialData: UserData = {
         profile: PROFILE,
@@ -79,7 +93,9 @@ export class Repository {
         },
         meta: {
           demoMode: true,
-          firstLoadDone: true
+          firstLoadDone: true,
+          // @ts-ignore
+          version: DATA_VERSION
         }
       };
       this.save(initialData);

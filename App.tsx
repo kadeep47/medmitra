@@ -123,10 +123,16 @@ export default function App() {
 
   // --- Logic Helpers ---
 
-  if (!data) return <div className="h-screen flex items-center justify-center bg-slate-50 flex-col"><Loader2 className="animate-spin text-emerald-600 w-10 h-10 mb-4"/><p className="text-slate-500 font-medium">Loading MediMitra...</p></div>;
+  // Safety check: if data isn't loaded yet
+  if (!data) return (
+    <div className="h-screen flex items-center justify-center bg-slate-50 flex-col">
+      <Loader2 className="animate-spin text-emerald-600 w-10 h-10 mb-4"/>
+      <p className="text-slate-500 font-medium">Loading MediMitra...</p>
+    </div>
+  );
 
   const { profile, medications, relations } = data;
-  const relationsArray = Object.values(relations);
+  const relationsArray = relations ? Object.values(relations) : [];
 
   // --- Actions ---
 

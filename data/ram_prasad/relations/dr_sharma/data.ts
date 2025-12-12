@@ -1,10 +1,8 @@
 import { RelationFolder } from '../../../../types';
-// @ts-ignore
-import doctorImg from './images/doctor.jpg';
-// @ts-ignore
-import newsBpImg from './images/news_bp.jpg';
-// @ts-ignore
-import newsDiabetesImg from './images/news_diabetes.jpg';
+
+const doctorImg = 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&auto=format&fit=crop&q=60';
+const newsBpImg = 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&auto=format&fit=crop&q=60';
+const newsDiabetesImg = 'https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?w=400&auto=format&fit=crop&q=60';
 
 const NOW = Date.now();
 const ONE_DAY = 86400000;

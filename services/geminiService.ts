@@ -2,10 +2,24 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 // --- Client Management ---
 const getAiClient = () => {
-  if (!process.env.API_KEY) {
-    throw new Error("API_KEY_MISSING: The app environment does not have a valid API Key.");
+  let apiKey = '';
+  try {
+    // Safe access for process.env
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      // @ts-ignore
+      apiKey = process.env.API_KEY;
+    }
+  } catch (e) {
+    console.warn("Environment access failed", e);
   }
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  if (!apiKey) {
+    console.error("API_KEY_MISSING");
+    // Return a dummy client to prevent immediate crash, calls will fail gracefully in try-catches
+    return new GoogleGenAI({ apiKey: 'dummy' });
+  }
+  return new GoogleGenAI({ apiKey });
 };
 
 // --- Parsers ---
@@ -38,7 +52,8 @@ export const parseSchedule = async (input: string) => {
     return JSON.parse(response.text || "[]");
   } catch (error) {
     console.error("Schedule Parse Error:", error);
-    throw error;
+    alert("Could not parse schedule. Please try again.");
+    return [];
   }
 };
 

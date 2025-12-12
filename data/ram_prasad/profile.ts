@@ -1,6 +1,7 @@
 import { UserProfile } from '../../types';
-// @ts-ignore
-import profileImg from './images/profile.jpg';
+
+// Using Unsplash source for reliability in demo
+const profileImg = 'https://images.unsplash.com/photo-1543872084-c7bd3822856f?w=400&auto=format&fit=crop&q=60';
 
 export const PROFILE: UserProfile = {
   userName: 'Nanu', // Nickname
