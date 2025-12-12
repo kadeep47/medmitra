@@ -96,13 +96,29 @@ export default function App() {
 
   useEffect(() => {
     // Initial Load via Repository
+    console.log('[DEBUG] App.tsx: Data loading started');
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:97',message:'Data loading started',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     try {
       const d = nanuRepo.load();
+      console.log('[DEBUG] App.tsx: Data loaded', { hasProfile: !!d?.profile, medCount: d?.medications?.length, relationCount: Object.keys(d?.relations || {}).length });
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:101',message:'Data loaded successfully',data:{hasProfile:!!d?.profile,medCount:d?.medications?.length,relationCount:Object.keys(d?.relations||{}).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       setData(d);
     } catch (e) {
-      console.error("Failed to load data", e);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:103',message:'Data loading failed',data:{error:e?.message,errorType:e?.constructor?.name,stack:e?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      console.error("[DEBUG] App.tsx: Failed to load data", e);
+      console.error("[DEBUG] App.tsx: Data loading error details:", {message: e?.message, name: e?.name, stack: e?.stack});
       // If load fails, try reset or show error
-      nanuRepo.reset();
+      try {
+        nanuRepo.reset();
+      } catch (resetError) {
+        console.error("[DEBUG] App.tsx: Failed to reset repository:", resetError);
+      }
     }
   }, []);
 
@@ -137,10 +153,14 @@ export default function App() {
   // --- Actions ---
 
   const handleOpenChat = (relationId: string) => {
+    if (!relationId || !relations[relationId]) {
+      console.error("Invalid relationId:", relationId);
+      return;
+    }
     setSelectedChatId(relationId);
     // Clear unread
     setData(prev => {
-        if (!prev) return null;
+        if (!prev || !prev.relations[relationId]) return prev;
         return {
             ...prev,
             relations: {
@@ -155,8 +175,12 @@ export default function App() {
   };
 
   const handleSendMessage = async (text: string) => {
-    if (!selectedChatId) return;
+    if (!selectedChatId || !text.trim()) return;
     const relation = relations[selectedChatId];
+    if (!relation) {
+      console.error("Relation not found for chatId:", selectedChatId);
+      return;
+    }
     
     // 1. Add User Message
     const newMsg: Message = {
@@ -169,7 +193,10 @@ export default function App() {
     };
 
     setData(prev => {
-        if (!prev) return null;
+        if (!prev || !prev.relations[selectedChatId]) {
+          console.error("Cannot add message: relation not found", selectedChatId);
+          return prev;
+        }
         return {
             ...prev,
             relations: {
@@ -185,14 +212,18 @@ export default function App() {
 
     // 2. AI Reply
     try {
-        // Construct History for Gemini (last 10 messages)
-        const historyForAi = relation.chat.slice(-10).map(m => ({
+        // Construct History for Gemini (last 10 messages, including the new one we just added)
+        const chatWithNewMessage = [...relation.chat, newMsg];
+        const historyForAi = chatWithNewMessage.slice(-10).map(m => ({
             role: m.senderId === 'user' ? 'user' : 'model',
             parts: [{ text: m.content }]
         }));
 
         // Show typing...
         // We just assume a delay naturally happens with await
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:206',message:'Calling generatePersonaChatReply',data:{relationName:relation.info.name,historyLength:historyForAi.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         
         const replyText = await generatePersonaChatReply(
             text,
@@ -201,6 +232,9 @@ export default function App() {
             relation.info.relationship,
             relation.info.personality
         );
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:212',message:'generatePersonaChatReply completed',data:{hasReply:!!replyText,replyLength:replyText?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         
         const replyMsg: Message = {
             id: (Date.now() + 1).toString(),
@@ -212,7 +246,10 @@ export default function App() {
         };
 
         setData(prev => {
-            if (!prev) return null;
+            if (!prev || !prev.relations[selectedChatId]) {
+              console.error("Cannot add reply: relation not found", selectedChatId);
+              return prev;
+            }
             return {
                 ...prev,
                 relations: {
@@ -220,7 +257,7 @@ export default function App() {
                     [selectedChatId]: {
                         ...prev.relations[selectedChatId],
                         chat: [...prev.relations[selectedChatId].chat, replyMsg],
-                        unreadCount: selectedChatId === relation.info.id ? 0 : prev.relations[selectedChatId].unreadCount + 1,
+                        unreadCount: selectedChatId === relation.info.id ? 0 : (prev.relations[selectedChatId].unreadCount || 0) + 1,
                         lastMessageTime: Date.now()
                     }
                 }
@@ -228,7 +265,40 @@ export default function App() {
         });
 
     } catch (e) {
-        console.error("AI Reply Failed", e);
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:231',message:'AI Reply Failed',data:{error:e?.message,errorType:e?.constructor?.name,stack:e?.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        console.error("[DEBUG] App.tsx: AI Reply Failed", e);
+        console.error("[DEBUG] App.tsx: Error details", {
+            message: e?.message,
+            name: e?.name,
+            stack: e?.stack,
+            selectedChatId,
+            hasRelation: !!relation
+        });
+        // Add a fallback message to show the user something went wrong
+        const errorMsg: Message = {
+            id: (Date.now() + 2).toString(),
+            senderId: relation.info.id,
+            type: 'text',
+            content: "Sorry, I'm having trouble responding right now. Please try again.",
+            timestamp: Date.now(),
+            isRead: false
+        };
+        setData(prev => {
+            if (!prev || !prev.relations[selectedChatId]) return prev;
+            return {
+                ...prev,
+                relations: {
+                    ...prev.relations,
+                    [selectedChatId]: {
+                        ...prev.relations[selectedChatId],
+                        chat: [...prev.relations[selectedChatId].chat, errorMsg],
+                        lastMessageTime: Date.now()
+                    }
+                }
+            };
+        });
     }
   };
 
@@ -439,8 +509,12 @@ export default function App() {
   );
 
   const ChatDetailView = () => {
-      const folder = relations[selectedChatId!];
-      if (!folder) return null;
+      if (!selectedChatId) return null;
+      const folder = relations[selectedChatId];
+      if (!folder) {
+        console.error("Folder not found for selectedChatId:", selectedChatId);
+        return <div className="p-4 text-red-600">Chat not found. Please go back.</div>;
+      }
       const { info, chat } = folder;
       const isDoctor = info.relationship.toLowerCase().includes('doctor');
       const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -497,8 +571,36 @@ export default function App() {
                 <div ref={messagesEndRef} />
              </div>
              <div className="p-2 bg-white flex items-center space-x-2">
-                <input className="flex-1 bg-slate-100 rounded-full px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Type a message..." onKeyDown={(e) => { if (e.key === 'Enter') { handleSendMessage(e.currentTarget.value); e.currentTarget.value = ''; } }} />
-                <button className="bg-emerald-600 text-white p-3 rounded-full shadow-sm hover:bg-emerald-700"><Send className="w-5 h-5" /></button>
+                <input 
+                    id="message-input"
+                    className="flex-1 bg-slate-100 rounded-full px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500" 
+                    placeholder="Type a message..." 
+                    onKeyDown={(e) => { 
+                        if (e.key === 'Enter') { 
+                            const input = e.currentTarget;
+                            const text = input.value.trim();
+                            if (text) {
+                                handleSendMessage(text);
+                                input.value = '';
+                            }
+                        } 
+                    }} 
+                />
+                <button 
+                    onClick={() => {
+                        const input = document.getElementById('message-input') as HTMLInputElement;
+                        if (input) {
+                            const text = input.value.trim();
+                            if (text) {
+                                handleSendMessage(text);
+                                input.value = '';
+                            }
+                        }
+                    }}
+                    className="bg-emerald-600 text-white p-3 rounded-full shadow-sm hover:bg-emerald-700"
+                >
+                    <Send className="w-5 h-5" />
+                </button>
              </div>
         </div>
       );

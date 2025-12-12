@@ -2,23 +2,28 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 // --- Client Management ---
 const getAiClient = () => {
-  let apiKey = '';
-  try {
-    // Safe access for process.env
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      // @ts-ignore
-      apiKey = process.env.API_KEY;
-    }
-  } catch (e) {
-    console.warn("Environment access failed", e);
-  }
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'geminiService.ts:4',message:'getAiClient called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  // Vite's define replaces process.env.API_KEY and process.env.GEMINI_API_KEY at build time
+  // Access directly - Vite will replace these with the actual values or undefined
+  // @ts-ignore - process.env is defined by Vite's define
+  const apiKey = (process?.env?.API_KEY || process?.env?.GEMINI_API_KEY || '') as string;
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'geminiService.ts:10',message:'API key check',data:{hasApiKey:!!apiKey,apiKeyLength:apiKey?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
 
   if (!apiKey) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'geminiService.ts:11',message:'API_KEY_MISSING',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     console.error("API_KEY_MISSING");
     // Return a dummy client to prevent immediate crash, calls will fail gracefully in try-catches
     return new GoogleGenAI({ apiKey: 'dummy' });
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/126bd026-08bb-4d79-88fd-b3f124d82bcb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'geminiService.ts:17',message:'Returning valid AI client',data:{apiKeyLength:apiKey?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   return new GoogleGenAI({ apiKey });
 };
 
@@ -128,6 +133,7 @@ export const generatePersonaChatReply = async (
     personality: string
 ) => {
     try {
+        console.log('[DEBUG] generatePersonaChatReply: Starting', { memberName, hasHistory: history.length > 0 });
         const ai = getAiClient();
         const systemInstruction = `You are ${memberName}, the ${relationship} of the user (Ram Prasad/Nanu).
         Your personality is: ${personality}.
@@ -137,18 +143,27 @@ export const generatePersonaChatReply = async (
         Constraint: Never say you are an AI. Stay in character completely.
         `;
 
+        console.log('[DEBUG] generatePersonaChatReply: Creating chat');
         const chat = ai.chats.create({
             model: "gemini-2.5-flash",
             config: {
                 systemInstruction: systemInstruction,
             },
-            history: history
+            history: history || []
         });
 
+        console.log('[DEBUG] generatePersonaChatReply: Sending message');
         const result = await chat.sendMessage({ message: userMessage });
-        return result.text;
+        const replyText = result.text || "Ok, I understand.";
+        console.log('[DEBUG] generatePersonaChatReply: Got reply', { replyLength: replyText.length });
+        return replyText;
     } catch (error) {
-        console.error("Chat Error", error);
+        console.error("[DEBUG] generatePersonaChatReply: Chat Error", error);
+        console.error("[DEBUG] generatePersonaChatReply: Error details", {
+            message: error?.message,
+            name: error?.name,
+            stack: error?.stack
+        });
         return "Ok, I understand.";
     }
 };
