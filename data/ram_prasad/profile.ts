@@ -1,8 +1,10 @@
 import { UserProfile } from '../../types';
+// @ts-ignore
+import profileImg from './images/profile.jpg';
 
 export const PROFILE: UserProfile = {
   userName: 'Nanu', // Nickname
-  userPhoto: '/images/profile.jpg',
+  userPhoto: profileImg,
   medical: {
     fullName: 'Ram Prasad', // Official Name
     age: '72',

@@ -1,4 +1,6 @@
 import { RelationFolder } from '../../../../types';
+// @ts-ignore
+import priyaImg from './images/priya.jpg';
 
 const NOW = Date.now();
 const ONE_DAY = 86400000;
@@ -12,7 +14,7 @@ export const PRIYA_DATA: RelationFolder = {
     relationship: 'Daughter-in-law',
     backwardRelationship: 'Father-in-law',
     personality: 'Kind, supportive, traditional yet modern, cheerful.',
-    photo: '/images/priya.jpg'
+    photo: priyaImg
   },
   unreadCount: 0,
   lastMessageTime: NOW - (ONE_DAY * 3),

@@ -1,4 +1,8 @@
 import { RelationFolder } from '../../../../types';
+// @ts-ignore
+import aaravImg from './images/aarav.jpg';
+// @ts-ignore
+import drawingImg from './images/drawing.jpg';
 
 const NOW = Date.now();
 const ONE_DAY = 86400000;
@@ -12,12 +16,12 @@ export const AARAV_DATA: RelationFolder = {
     relationship: 'Grandson',
     backwardRelationship: 'Grandfather',
     personality: 'Playful, energetic, cricket lover. Loves his Nanu.',
-    photo: '/images/aarav.jpg'
+    photo: aaravImg
   },
   unreadCount: 1,
   lastMessageTime: NOW,
   chat: [
-    { id: 'm1_1', senderId: 'f1', type: 'text', content: 'Nanu, look what I drew in school!', timestamp: NOW - (ONE_DAY * 12), isRead: true, metadata: { imageUrl: '/images/aarav_drawing.jpg' } },
+    { id: 'm1_1', senderId: 'f1', type: 'text', content: 'Nanu, look what I drew in school!', timestamp: NOW - (ONE_DAY * 12), isRead: true, metadata: { imageUrl: drawingImg } },
     { id: 'm1_2', senderId: 'user', type: 'text', content: 'Very nice beta! Is that me?', timestamp: NOW - (ONE_DAY * 12) + ONE_HOUR, isRead: true },
     { id: 'm1_3', senderId: 'f1', type: 'text', content: 'Nanu, papa says you missed your walk. Go now!', timestamp: NOW - (ONE_DAY * 5), isRead: true },
     { id: 'm1_4', senderId: 'user', type: 'text', content: 'Going now, don\'t worry.', timestamp: NOW - (ONE_DAY * 5) + (ONE_HOUR/2), isRead: true },

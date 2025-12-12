@@ -47,13 +47,19 @@ const Modal = ({ title, onClose, children }: { title: string, onClose: () => voi
 );
 
 const Avatar = ({ src, name, size = "md" }: { src?: string, name: string, size?: "sm"|"md"|"lg"|"xl" }) => {
+  const [imgError, setImgError] = useState(false);
   const dims = { sm: "w-8 h-8", md: "w-12 h-12", lg: "w-16 h-16", xl: "w-24 h-24" };
   const initials = name ? name.substring(0, 2).toUpperCase() : "?";
   
   return (
     <div className={`${dims[size]} rounded-full flex-shrink-0 bg-slate-200 overflow-hidden border border-slate-300 flex items-center justify-center relative`}>
-      {src ? (
-        <img src={src} alt={name} className="w-full h-full object-cover" />
+      {src && !imgError ? (
+        <img 
+            src={src} 
+            alt={name} 
+            className="w-full h-full object-cover" 
+            onError={() => setImgError(true)}
+        />
       ) : (
         <span className="text-slate-500 font-bold">{initials}</span>
       )}
@@ -643,7 +649,7 @@ export default function App() {
         <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center"><User className="mr-2 text-emerald-600" /> My Profile</h2>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6 flex items-center">
             <div className="w-24 h-24 bg-slate-200 rounded-full overflow-hidden border-4 border-slate-50 shadow-sm relative shrink-0">
-                <img src={profile.userPhoto} className="w-full h-full object-cover" />
+                <Avatar src={profile.userPhoto} name={profile.userName} size="xl" />
             </div>
             <div className="ml-6">
                 <h3 className="text-2xl font-bold text-slate-800">{profile.medical.fullName}</h3>
